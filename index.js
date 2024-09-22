@@ -4,55 +4,58 @@ const axios = require('axios');
 const app = express();
 const port = 3000;
 
-// URLs to ping
 const urls = [
   'https://fascia-backend.onrender.com',
   'https://ihhplayer-express-s1gr.onrender.com',
 ];
 
-// Array to store last 5 ping data
 const lastPings = [];
 
-// Function to ping the endpoints
-const pingEndpoints = async () => {
-  for (const url of urls) {
+const pingWithRetry = async (url, retries = 3) => {
+  for (let i = 0; i < retries; i++) {
     try {
       const response = await axios.get(url);
       const html = response.data;
-
-      // Extract title from the response (assuming HTML response has a <title> tag)
       const match = html.match(/<title>(.*?)<\/title>/);
       const title = match ? match[1] : 'No title found';
-
-      // Get current date and time
       const date = new Date();
       const dateStr = date.toLocaleDateString();
       const timeStr = date.toLocaleTimeString();
-
-      // Update the ping data (add to lastPings array)
+      
       lastPings.unshift({
         url,
         title,
         date: dateStr,
         time: timeStr,
       });
-
-      // Keep only the last 5 pings
+      
       if (lastPings.length > 5) {
         lastPings.pop();
       }
-
+      
       console.log(`Pinged ${url}: ${title}`);
+      return;
     } catch (error) {
-      console.error(`Error pinging ${url}:`, error.message);
+      if (error.response && error.response.status === 503) {
+        console.log(`Service unavailable (503) on ${url}, retrying... (${i + 1}/${retries})`);
+        if (i < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+      } else {
+        console.error(`Error pinging ${url}:`, error.message);
+        break;
+      }
     }
   }
 };
 
-// Ping every 15 seconds
+const pingEndpoints = async () => {
+  await pingWithRetry('https://fascia-backend.onrender.com');
+  await pingWithRetry('https://ihhplayer-express-s1gr.onrender.com');
+};
+
 setInterval(pingEndpoints, 15000);
 
-// Root route to display the last 5 pings in a nerdy-themed table
 app.get('/', (req, res) => {
   if (lastPings.length === 0) {
     return res.send('<p>No pings have been made yet.</p>');
@@ -117,7 +120,6 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Start server
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
