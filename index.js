@@ -7,6 +7,7 @@ const port = 3000;
 const urls = [
   'https://fascia-backend.onrender.com',
   'https://ihhplayer-express-s1gr.onrender.com',
+  'https://pingmeeeeee.onrender.com'
 ];
 
 const lastPings = [];
