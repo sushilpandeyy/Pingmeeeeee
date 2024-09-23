@@ -50,7 +50,7 @@ const pingWithRetry = async (url, retries = 3) => {
 };
 
 const pingEndpoints = async () => {
-  await pingWithRetry('https://fascia-backend.onrender.com');
+  await pingWithRetry('https://fascia-backend.onrender.com/products');
   await pingWithRetry('https://ihhplayer-express-s1gr.onrender.com');
 };
 
